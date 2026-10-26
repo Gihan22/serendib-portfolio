@@ -5,3 +5,5 @@ firestore-debug.log
 .firebase/
 node_modules/
 security-review.local.md
+migrate-cloud.cjs
+provision-owner.cjs
