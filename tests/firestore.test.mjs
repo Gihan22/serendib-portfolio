@@ -1,0 +1,16 @@
+import {readFileSync} from 'node:fs';
+import {test,after} from 'node:test';
+import {initializeTestEnvironment,assertSucceeds,assertFails} from '@firebase/rules-unit-testing';
+import {doc,getDoc,setDoc,updateDoc,deleteDoc,getDocs,collection,serverTimestamp} from 'firebase/firestore';
+const projectId='serendib-portfolio-gihan';
+const env=await initializeTestEnvironment({projectId,firestore:{rules:readFileSync('firestore.rules','utf8')}});
+const uid='portfolio-423b5063-1e42-4799-936a-546cd3ee4d12';
+const own=env.authenticatedContext(uid).firestore(),other=env.authenticatedContext('someone-else').firestore(),anon=env.unauthenticatedContext().firestore();
+const ref=db=>doc(db,'portfolios',uid);
+const valid=(revision=1)=>({payload:JSON.stringify({version:1,demo:false,trades:[],dividends:[],quotes:{},watchlist:[]}),revision,updatedAt:serverTimestamp()});
+test('owner may create/read/update exactly their own portfolio',async()=>{await env.clearFirestore();await assertSucceeds(setDoc(ref(own),valid()));await assertSucceeds(getDoc(ref(own)));await assertSucceeds(setDoc(ref(own),valid(2)));});
+test('signed-out and other users cannot read, list, create or update private records',async()=>{for(const db of [anon,other]){await assertFails(getDoc(ref(db)));await assertFails(getDocs(collection(db,'portfolios')));await assertFails(setDoc(ref(db),valid(3)));await assertFails(updateDoc(ref(db),{payload:'{}',revision:3,updatedAt:serverTimestamp()}));}});
+test('owner cannot write another user path or unexpected subcollections',async()=>{await assertFails(setDoc(doc(own,'portfolios','someone-else'),valid()));await assertFails(setDoc(doc(own,'portfolios',uid,'private','child'),valid()));});
+test('both create and update require complete exact schema and correct types',async()=>{for(const invalid of [{...valid(3),extra:'x'},{...valid(3),payload:42},{...valid(3),revision:'3'},{...valid(3),updatedAt:'today'},{payload:'{}',revision:3},{revision:3,updatedAt:serverTimestamp()}])await assertFails(setDoc(ref(own),invalid));await env.withSecurityRulesDisabled(async c=>deleteDoc(ref(c.firestore())));await assertFails(setDoc(ref(own),{...valid(),extra:'x'}));await assertFails(setDoc(ref(own),{...valid(),payload:42}));await assertSucceeds(setDoc(ref(own),valid()));});
+test('payload size, revision transition, server timestamp and deletes are restricted',async()=>{await assertFails(setDoc(ref(own),{...valid(2),payload:'x'.repeat(700001)}));for(const rev of [-1,0,1,3,1e12,1.5])await assertFails(setDoc(ref(own),valid(rev)));await assertFails(setDoc(ref(own),{...valid(2),updatedAt:new Date('2000-01-01')}));await assertFails(deleteDoc(ref(own)));await assertSucceeds(setDoc(ref(own),valid(2)));});
+after(()=>env.cleanup());

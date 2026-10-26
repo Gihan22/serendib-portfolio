@@ -1,0 +1,7 @@
+.local/
+firebase-debug.log
+firestore-debug.log
+*-debug.log
+.firebase/
+node_modules/
+security-review.local.md

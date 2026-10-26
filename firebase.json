@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "authorizedDomains": ["gihan22.github.io", "serendib-portfolio-gihan.firebaseapp.com", "serendib-portfolio-gihan.web.app", "serendib-portfolio-01a178f3.zestyshell16.chatgpt.site", "localhost", "127.0.0.1"],
+    "providers": {
+      "emailPassword": true
+    }
+  },
+  "emulators": {"firestore": {"port": 8185}, "ui": {"enabled": false}},
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

@@ -1,0 +1,29 @@
+// Data model: portfolios/{ownerUid}, a private single-document portfolio.
+// payload: JSON string, 2..700000 chars; internal schema checked by the app.
+// revision: integer 1..1000000000; +1 per atomic save.
+// updatedAt: server timestamp; ownership is fixed in the document path.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId &&
+        userId == 'portfolio-423b5063-1e42-4799-936a-546cd3ee4d12';
+    }
+    function isValidPortfolio(data) {
+      return data.keys().hasAll(['payload', 'revision', 'updatedAt']) &&
+        data.keys().hasOnly(['payload', 'revision', 'updatedAt']) &&
+        data.payload is string && data.payload.size() >= 2 && data.payload.size() <= 700000 &&
+        data.revision is int && data.revision >= 1 && data.revision <= 1000000000 &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+    match /portfolios/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidPortfolio(request.resource.data) && request.resource.data.revision == 1;
+      allow update: if isOwner(userId) && isValidPortfolio(request.resource.data) &&
+        request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
