@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const el=()=>({textContent:'',innerHTML:'',value:'',style:{},classList:{toggle(){},add(){},remove(){}},close(){}});
 const context=vm.createContext({console,structuredClone,Intl,Date,Number,JSON,Set,Object,Array,String,Math,Error,URL,crypto:require('node:crypto').webcrypto,document:{querySelector:el,querySelectorAll:()=>[],addEventListener(){}},location:{hash:''},window:{addEventListener(){}},setTimeout(){},clearTimeout(){}});
-vm.runInContext(fs.readFileSync('dist/insights.js','utf8')+'\n'+fs.readFileSync('dist/app.js','utf8').split("import('./cloud.js')")[0],context);
+vm.runInContext(fs.readFileSync('dist/insights.js','utf8')+'\n'+fs.readFileSync('dist/app.js','utf8').split("import('./cloud.js")[0],context);
 const run=s=>vm.runInContext(s,context);
 run(`state=emptyState();state.openings=[{id:'o1',symbol:'TEST.N0000',name:'Test',sector:'Other',qty:10,cost:123.45,date:'2026-10-26'}];state.quotes['TEST.N0000']={price:15,date:null,source:'statement'};state=validate(state)`);
 assert.equal(run('totals().cost'),123.45);assert.equal(run('totals().value'),150);

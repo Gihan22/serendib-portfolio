@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
 const elements=new Map();const el=s=>{if(!elements.has(s))elements.set(s,{textContent:'',innerHTML:'',value:'',style:{},classList:{toggle(){},add(){},remove(){}},showModal(){},close(){},focus(){},setSelectionRange(){}});return elements.get(s);};
-const source=fs.readFileSync('dist/app.js','utf8').split("import('./cloud.js')")[0];
+const source=fs.readFileSync('dist/app.js','utf8').split("import('./cloud.js")[0];
 function boot(){const context=vm.createContext({console,crypto:{randomUUID},structuredClone,Intl,Date,Number,JSON,Set,Object,Array,String,Math,Error,URL,document:{querySelector:el,querySelectorAll:()=>[],addEventListener(){}},location:{hash:''},window:{addEventListener(){}},setTimeout:()=>1,clearTimeout(){}});vm.runInContext(fs.readFileSync('dist/insights.js','utf8'),context);vm.runInContext(source,context);return code=>vm.runInContext(code,context);}
 let run=boot();assert.equal(run('state.trades.length'),0);assert.throws(()=>run('save()'),/connected/);run('state=demoState()');assert.equal(run('totals().holdings.length'),5);
 assert.equal(run('totals().dividend'),7800);

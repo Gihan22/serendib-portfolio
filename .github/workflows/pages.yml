@@ -27,6 +27,7 @@ jobs:
         run: |
           curl --fail --silent --show-error --max-time 30 https://gihan22.github.io/serendib-portfolio/market-data.json -o previous-market.json && python -c "import json,pathlib; p=pathlib.Path('previous-market.json'); d=json.loads(p.read_text()); assert d.get('version') == 1 and len(d.get('stocks',{})) > 100; pathlib.Path('dist/market-data.json').write_text(p.read_text())" || true
       - name: Refresh public CSE market data
+        if: github.event_name != 'push'
         id: market
         continue-on-error: true
         run: python scripts/market-data.py
