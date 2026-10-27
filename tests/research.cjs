@@ -1,0 +1,18 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const el=()=>({textContent:'',innerHTML:'',value:'',style:{},classList:{toggle(){},add(){},remove(){}},close(){}});
+const context=vm.createContext({console,structuredClone,Intl,Date,Number,JSON,Set,Object,Array,String,Math,Error,URL,crypto:require('node:crypto').webcrypto,document:{querySelector:el,querySelectorAll:()=>[],addEventListener(){}},location:{hash:''},window:{addEventListener(){}},setTimeout(){},clearTimeout(){}});
+vm.runInContext(fs.readFileSync('dist/insights.js','utf8')+'\n'+fs.readFileSync('dist/app.js','utf8').split("import('./cloud.js')")[0],context);
+const run=s=>vm.runInContext(s,context);
+run(`state=emptyState();state.openings=[{id:'o1',symbol:'TEST.N0000',name:'Test',sector:'Other',qty:10,cost:123.45,date:'2026-10-26'}];state.quotes['TEST.N0000']={price:15,date:null,source:'statement'};state=validate(state)`);
+assert.equal(run('totals().cost'),123.45);assert.equal(run('totals().value'),150);
+assert.equal(run('totals().realised'),0);assert.equal(run('state.trades.length'),0);
+run(`state.trades=[{id:'sale',type:'sell',symbol:'TEST.N0000',name:'Test',sector:'Other',qty:2,price:16,fee:1,date:'2026-10-27'}];state=validate(state)`);
+assert.ok(Math.abs(run('totals().realised')-6.31)<1e-9);assert.ok(Math.abs(run('totals().cost')-98.76)<1e-9);
+assert.throws(()=>run(`validate({...state,openings:[...state.openings,{...state.openings[0],id:'o2'}]})`),/duplicate/);
+run(`marketFeed={stocks:{'TEST.N0000':{price:20,asOf:'2026-10-26'}}}`);assert.equal(run("portfolioQuote('TEST.N0000').price"),20);
+run(`state.quotes['TEST.N0000']={price:21,date:'2026-10-27'}`);assert.equal(run("portfolioQuote('TEST.N0000').price"),21);
+assert.equal(run('rsi(Array.from({length:15},(_,i)=>({close:i+1})))'),100);
+assert.equal(run('rsi(Array.from({length:15},()=>({close:10})))'),50);
+assert.equal(run('rsi([{close:1}])'),null);assert.equal(run('sma([{close:1}],20)'),null);
+run(`page='research';render();state=validate(JSON.parse(JSON.stringify(state)))`);
+console.log('Passed: opening balances, total-cost reconciliation, opening-balance sales, duplicate rejection, quote priority, insufficient history and RSI boundary cases.');

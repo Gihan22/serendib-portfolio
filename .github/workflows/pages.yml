@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '30 10 * * 1-5'
 permissions:
   contents: read
   pages: write
@@ -18,6 +20,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore previous public market observations
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://gihan22.github.io/serendib-portfolio/market-data.json -o previous-market.json && python -c "import json,pathlib; p=pathlib.Path('previous-market.json'); d=json.loads(p.read_text()); assert d.get('version') == 1 and len(d.get('stocks',{})) > 100; pathlib.Path('dist/market-data.json').write_text(p.read_text())" || true
+      - name: Refresh public CSE market data
+        id: market
+        continue-on-error: true
+        run: python scripts/market-data.py
+      - name: Report source outage
+        if: steps.market.outcome == 'failure'
+        run: echo '::warning::CSE refresh failed. Publishing last available dated snapshot.'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
